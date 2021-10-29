@@ -1,18 +1,18 @@
 const express = require("express");
 const router = express.Router();
-const Student = require("../schemas/Student");
+const Course = require("../schemas/Course");
 
-// get all students
+// get all courses
 router.get("/", async (req, res) => {
   try {
-    const students = await Student.find();
-    res.status(200).json(students);
+    const courses = await Course.find();
+    res.status(200).json(courses);
   } catch (err) {
     console.error(err);
   }
 });
 
-// get single student by id
+// get single Course by id
 router.get("/:id", async (req, res) => {
   const { id } = req.params;
 
@@ -21,64 +21,64 @@ router.get("/:id", async (req, res) => {
     return res.status(status).json({ msg: "Id not valid", status });
   }
   try {
-    const student = await Student.findById(id);
-    if (!student) {
+    const course = await Course.findById(id);
+    if (!course) {
       const status = 404;
       return res.status(status).json({ msg: "Item not found", status });
     }
 
-    res.status(200).json(student);
+    res.status(200).json(course);
   } catch (err) {
     console.error(err);
   }
 });
 
-// create student
+// create Course
 router.post("/", async (req, res) => {
-  const { name } = req.body;
-  const newStudent = new Student({ name });
+  const { title } = req.body;
+  const newCourse = new Course({ title });
   try {
-    const student = await newStudent.save();
-    res.status(201).json(student);
+    const Course = await newCourse.save();
+    res.status(201).json(Course);
   } catch (err) {
     console.error(err);
   }
 });
 
-// update student
+// update Course
 router.put("/:id", async (req, res) => {
-  const { name } = req.body;
+  const { title } = req.body;
   const { id } = req.params;
 
-  if (!name) {
+  if (!title) {
     return res.status(400).json({ msg: "No data set" });
   }
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
     const status = 400;
     return res.status(status).json({ msg: "Id not valid", status });
   }
-  const studentFields = {
-    name,
+  const CourseFields = {
+    title,
   };
 
-  let student;
+  let course;
   try {
-    student = await Student.findByIdAndUpdate(
+    course = await Course.findByIdAndUpdate(
       req.params.id,
-      { $set: studentFields },
+      { $set: CourseFields },
       { new: true, useFindAndModify: false }
     );
-    if (!student) {
+    if (!course) {
       const status = 404;
       return res.status(status).json({ msg: "Item not found", status });
     }
-    res.status(200).json(student);
+    res.status(200).json(course);
   } catch (err) {
     console.error(err);
   }
 });
 
-// delete student
+// delete Course
 router.delete("/:id", async (req, res) => {
   const { id } = req.params;
   if (!id.match(/^[0-9a-fA-F]{24}$/)) {
@@ -87,7 +87,7 @@ router.delete("/:id", async (req, res) => {
   }
   try {
     let status = 200;
-    const found = await Student.findByIdAndDelete(id);
+    const found = await Course.findByIdAndDelete(id);
     if (!found) {
       status = 404;
       return res.status(status).json({ msg: "Item not found", status });

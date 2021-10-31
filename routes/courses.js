@@ -98,4 +98,37 @@ router.delete("/:id", async (req, res) => {
   }
 });
 
+// Filter all students with specific course
+router.get("/:title/students", async (req, res) => {
+  const { title: courseTitle } = req.params;
+  let status = 200;
+
+  try {
+    Course.findOne(
+      { title: new RegExp(courseTitle, "i") },
+      async (error, course) => {
+        if (error) {
+          status = 500;
+          console.error(error);
+          return res.status(status).json({ msg: "Server error", status });
+        }
+
+        if (!course) {
+          status = 404;
+          return res.status(status).json({ msg: "Item not found", status });
+        }
+
+        const { students } = await course.populate("students");
+        const result = students.map(({ _id, name }) => ({
+          id: _id.toString(),
+          name,
+        }));
+        res.status(200).json(result);
+      }
+    );
+  } catch (err) {
+    console.error(err);
+  }
+});
+
 module.exports = router;

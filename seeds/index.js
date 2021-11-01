@@ -11,6 +11,7 @@ const coursesList = [
   { title: "Angular" },
   { title: "NestJS" },
   { title: "NextJS" },
+  { title: "Java" },
 ];
 
 const initializeDatabase = async () => {

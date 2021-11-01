@@ -5,12 +5,24 @@ const Student = require("../schemas/Student");
 const mongoose = require("mongoose");
 mongoose.set("debug", false);
 const MAX_COURSES_PER_STUDENT = 5;
+const MAX_STUDENTS_PER_COURSE = 50;
 
 // get all students
 router.get("/", async (req, res) => {
+  let course;
+  if (req.query.course) {
+    course = await Course.findOne({ title: req.query.course });
+  }
+
   try {
-    const students = await Student.find();
-    res.status(200).json(students);
+    const students = await Student.find({
+      ...(course && { courses: course }),
+    });
+    res
+      .status(200)
+      .json(
+        students?.map(({ _id, name, courses }) => ({ id: _id, name, courses }))
+      );
   } catch (err) {
     console.error(err);
   }
@@ -153,7 +165,13 @@ router.put("/:id/enroll", async (req, res) => {
         });
       }
 
-      // console.log(course.students);
+      if (course.students.length >= MAX_STUDENTS_PER_COURSE) {
+        status = 400;
+        return res.status(status).json({
+          msg: "Course reached the limit for students to enroll",
+          status,
+        });
+      }
 
       student.courses.push(course);
       student.save();

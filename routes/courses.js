@@ -1,12 +1,27 @@
 const express = require("express");
 const router = express.Router();
 const Course = require("../schemas/Course");
+const Student = require("../schemas/Student");
 
 // get all courses
 router.get("/", async (req, res) => {
+  let student;
+  if (req.query.student) {
+    student = await Student.findOne({ name: req.query.student });
+  }
   try {
-    const courses = await Course.find();
-    res.status(200).json(courses);
+    const courses = await Course.find({
+      ...(student && { students: student }),
+    });
+    res
+      .status(200)
+      .json(
+        courses?.map(({ _id, title, students }) => ({
+          id: _id,
+          title,
+          students,
+        }))
+      );
   } catch (err) {
     console.error(err);
   }

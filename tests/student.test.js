@@ -8,9 +8,9 @@ beforeAll(() => {
   initializeDatabase();
 });
 
-// afterAll(() => {
-//   clearDatabase();
-// });
+afterAll(() => {
+  clearDatabase();
+});
 
 test("Should respond with json", (done) => {
   request(app)
@@ -18,6 +18,23 @@ test("Should respond with json", (done) => {
     .set("Accept", "application/json")
     .expect("Content-Type", /json/)
     .expect(200, done);
+});
+test("Should get a list of students", async () => {
+  const res = await request(app)
+    .get("/api/students")
+    .set("Accept", "application/json")
+    .expect("Content-Type", /json/);
+
+  expect(res.status).toBe(200);
+  expect(res.body).toEqual(
+    expect.arrayContaining([
+      expect.objectContaining({
+        id: expect.any(String),
+        name: expect.any(String),
+        courses: expect.any(Array),
+      }),
+    ])
+  );
 });
 
 test(`Should POST /api/students: creates student 'Joseph'`, (done) => {
@@ -126,10 +143,11 @@ test(`Should return status 404 on PUT /api/students/:id/enroll : Course not foun
 });
 
 test(`Should PUT /api/students/:id/enroll : enroll student 'Jane' in 'React course'`, async () => {
-  // Create student 'Jane'
-  let student = await new Student({
+  // Pick student 'Jane'
+  let student = await Student.findOne({
     name: "Jane",
-  }).save();
+  });
+  await student.save();
 
   // Get react course
   const course = await Course.findOne({ title: "React" });
@@ -194,39 +212,24 @@ test("Should PUT /api/students/:id/enroll : Student is already enrolled in cours
   expect(res.body.msg).toBe("Already enrolled");
 });
 
-// test("Should restrict when trying to enroll more than 50 students in a single course", async () => {
-//   const javaCourse = new Course({ title: "Java" });
-//   await javaCourse.save();
-//   let students = Array.from(
-//     { length: 3 },
-//     (_, idx) =>
-//       new Student({
-//         name: `student${idx + 1}`,
-//         courses: [javaCourse],
-//       })
-//   );
+test("Should restrict when trying to enroll more than 50 students in a single course", async () => {
+  const courseAtLimit = new Course({
+    title: "courseAtLimit",
+    students: Array.from(
+      { length: 50 },
+      (_, idx) => new Student({ name: `student${idx + 1}` })
+    ),
+  });
+  courseAtLimit.save();
 
-//   // Manually enrolling 50 students
-//   await Student.bulkSave(students);
-//   javaCourse.students = students;
-//   await javaCourse.save();
-//   // console.log(
+  // Pick existing student
+  const janeStudent51 = await Student.findOne({ name: `Jane` });
 
-//   //   Course.find()
-//   // )
+  const res = await request(app)
+    .put(`/api/students/${janeStudent51._id.toString()}/enroll`)
+    .set("Content-type", "application/json")
+    .send({ id: courseAtLimit._id.toString() });
 
-//   // Enroll 50 students to Java course
-//   for (const st of students) {
-//     await request(app)
-//       .put(`/api/students/${st._id.toString()}/enroll`)
-//       .send({ id: javaCourse._id.toString() });
-//   }
-
-//   // Try to add student 51
-//   const student51 = new Student({ name: "student51" });
-//   const res = await request(app)
-//     .put(`/api/students/${student51._id.toString()}/enroll`)
-//     .send({ id: javaCourse._id.toString() });
-
-//   expect(res.status).toBe(429);
-// });
+  expect(res.status).toBe(400);
+  expect(res.body.msg).toBe("Course reached the limit for students to enroll");
+});

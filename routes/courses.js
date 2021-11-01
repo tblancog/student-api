@@ -13,15 +13,13 @@ router.get("/", async (req, res) => {
     const courses = await Course.find({
       ...(student && { students: student }),
     });
-    res
-      .status(200)
-      .json(
-        courses?.map(({ _id, title, students }) => ({
-          id: _id,
-          title,
-          students,
-        }))
-      );
+    res.status(200).json(
+      courses?.map(({ _id, title, students }) => ({
+        id: _id,
+        title,
+        students,
+      }))
+    );
   } catch (err) {
     console.error(err);
   }

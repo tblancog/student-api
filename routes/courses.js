@@ -78,6 +78,9 @@ router.get("/:id", async (req, res) => {
 // create Course
 router.post("/", async (req, res) => {
   const { title } = req.body;
+  if (!title) {
+    return res.status(400).json({ msg: "Bad request", status: 400 });
+  }
   const newCourse = new Course({ title });
   try {
     const Course = await newCourse.save();

@@ -26,7 +26,7 @@ Start server on port 8000
 npm run start
 ```
 
-### Mock data
+### Mock data endpoints
 
 Create mock data
 

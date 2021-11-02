@@ -5,13 +5,42 @@ const Student = require("../schemas/Student");
 
 // get all courses
 router.get("/", async (req, res) => {
+  // If token exists then it can filter by student
+  let token = "";
+  if ("authorization" in req.headers) {
+    token = req.headers["authorization"].split(" ")[1];
+  }
+
   let student;
-  if (req.query.student) {
-    student = await Student.findOne({ name: req.query.student });
+  if (req.query.student && token) {
+    // student = await Student.find({ name: req.query.student });
+    student = await Student.find({
+      name: { $regex: req.query.student, $options: "i" },
+    });
+  } else if (req.query.student && !token) {
+    const status = 403;
+    return res.status(status).json({ msg: "Only admins can filter", status });
   }
   try {
     const courses = await Course.find({
       ...(student && { students: student }),
+    });
+    res.status(200).json(
+      courses?.map(({ _id, title, students }) => ({
+        id: _id,
+        title,
+        students,
+      }))
+    );
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+router.get("/no-students", async (req, res) => {
+  try {
+    const courses = await Course.find({
+      students: { $exists: true, $size: 0 },
     });
     res.status(200).json(
       courses?.map(({ _id, title, students }) => ({

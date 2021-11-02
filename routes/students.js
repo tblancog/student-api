@@ -9,14 +9,39 @@ const MAX_STUDENTS_PER_COURSE = 50;
 
 // get all students
 router.get("/", async (req, res) => {
+  // If token exists then it can filter by course
+  let token = "";
+  if ("authorization" in req.headers) {
+    token = req.headers["authorization"].split(" ")[1];
+  }
   let course;
-  if (req.query.course) {
-    course = await Course.findOne({ title: req.query.course });
+  if (req.query.course && token) {
+    course = await Course.find({
+      title: { $regex: req.query.course, $options: "i" },
+    });
+  } else if (req.query.course && !token) {
+    const status = 403;
+    return res.status(status).json({ msg: "Only admins can filter", status });
   }
 
   try {
     const students = await Student.find({
       ...(course && { courses: course }),
+    });
+    res
+      .status(200)
+      .json(
+        students?.map(({ _id, name, courses }) => ({ id: _id, name, courses }))
+      );
+  } catch (err) {
+    console.error(err);
+  }
+});
+
+router.get("/no-courses", async (req, res) => {
+  try {
+    const students = await Student.find({
+      courses: { $exists: true, $size: 0 },
     });
     res
       .status(200)
@@ -52,7 +77,7 @@ router.get("/:id", async (req, res) => {
 // create student
 router.post("/", async (req, res) => {
   const { name } = req.body;
-  const newStudent = new Student({ name });
+  const newStudent = new Student({ name, courses: [] });
   try {
     const student = await newStudent.save();
     res.status(201).json(student);

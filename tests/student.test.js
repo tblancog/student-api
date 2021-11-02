@@ -59,14 +59,48 @@ describe("Student tests", () => {
     expect(res2.status).toBe(200);
 
     // Get courses for Vinnie only
-    const resCourses = await request(app).get(
-      `/api/courses?student=${st2.name}`
-    );
+    const resCourses = await request(app)
+      .get(`/api/students?course=${course.title}`)
+      .set({ Authorization: "Bearer <some-fake-valid-token>" });
     expect(resCourses.status).toBe(200);
 
     // Match the result with the filtered student
     for (const c of resCourses.body) {
-      expect(c.students).toContain(st2._id.toString());
+      expect(c.courses).toContain(course._id.toString());
+    }
+  });
+
+  test("Restrict filtering if a token is not passed", async () => {
+    const res = await request(app).get(`/api/students?course=React`);
+    expect(res.status).toBe(403);
+    expect(res.body).toEqual({
+      msg: "Only admins can filter",
+      status: 403,
+    });
+  });
+
+  test("Should show only students without any course", async () => {
+    // Pick and enroll student to NodeJS
+    const enrolledStudent = await new Student({
+      name: "enrolled student",
+    }).save();
+
+    // Pick nodeJS
+    const nodeJsCourse = await Course.findOne({ title: "NodeJS" });
+
+    // Enroll
+    await request(app)
+      .put(`/api/students/${enrolledStudent._id.toString()}/enroll`)
+      .send({ id: nodeJsCourse._id.toString() });
+
+    // Get only students with courses
+    const res = await request(app).get(`/api/students/no-courses`);
+    expect(res.status).toBe(200);
+
+    // Match the result with the filtered student
+    for (const c of res.body) {
+      expect(c.courses.length).toBe(0);
+      expect(c.title).not.toBe("enrolled student");
     }
   });
 
